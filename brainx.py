@@ -14,7 +14,9 @@
 #http://vyuka.ookami.cz/@CVUT_2012+13-LS_BI-PYT/
 #http://vyuka.ookami.cz/@CVUT_2012+13-LS_BI-SKJ/
 
+import os
 import sys
+from argparse import ArgumentParser
 
 class BrainFuck:
     """Interpretr jazyka brainfuck."""
@@ -112,6 +114,7 @@ class BrainFuck:
                     arr[ptr] = ord(data[idx])
                     idx += 1
                 else: #mimo vstup - nacteni ze stdin
+                    print("Waiting for user input...")
                     arr[ptr] = ord(sys.stdin.read(1))
 
             #posun instrukcniho ukazatele doprava
@@ -175,3 +178,21 @@ class BrainCopter():
         self.program = BrainFuck(self.data)
 
 '''
+
+#--------------------------MAIN--------------------------
+if __name__ == '__main__':
+
+    #definovani a nacteni argumentu pro vstupni data
+    parser = ArgumentParser()
+    parser.add_argument("input", help="Input file/string")
+    args = parser.parse_args()
+
+    #nacteni dat ze souboru/stringu
+    if (os.path.isfile(args.input) == True):
+        with open (args.input, encoding="utf-8") as data_input:
+            content = data_input.read()
+    else:
+        content = args.input
+
+    #vykonani programu
+    bf = BrainFuck(content)
