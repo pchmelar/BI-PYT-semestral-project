@@ -36,26 +36,36 @@ class PngReader():
 		self.rgb = []
 
         #nacteni dat PNG souboru
-		self.data = b''
-		with open(filepath, 'rb') as img:
-			self.data = img.read()
+		self.data = []
+		with open(filepath, 'rb') as stream:
+			while stream.peek():
+				self.data.append(stream.read(1))
 
 		#kontrola hlavicky PNG souboru
-		self.header = self.parser(0,8)
-		if self.header != b'\xc2\x89\x50\x4E\x47\x0D\x0A\x1A\x0A':
+		self.header = self.parser(self.data,0,8)
+		print(self.header)
+		if self.header != b'\x89\x50\x4E\x47\x0D\x0A\x1A\x0A':
 			raise PNGWrongHeaderError
 
 		#kontrola datove casti IHDR chunku
-		self.ihdr = self.parser(16,29)
+		self.ihdr = self.parser(self.data,16,29)
 		if self.ihdr[8:] != b'\x08\x02\x00\x00\x00':
 			raise PNGNotImplementedError
 
-	#vyparsovani pozadovane casti a prevedeni na binarni retezec
-	def parser(self,start,end):
-		s = ""
+	#vyparsovani pozadovane casti a spojeni do binarniho retezce
+	def parser(self,data,start,end):
+		s = b""
 		for i in range(start,end):
-			s += chr(self.data[i])
-		return bytes(s,encoding="utf-8")
+			s += data[i]
+		return s
+
+	#slozeni 4B cisla ulozeneho v BigEndianu
+	def BE_convert(self,start):
+		num = self.data[start] * 16777216
+		num += self.data[start+1] * 65536
+		num += self.data[start+2] * 256
+		num += self.data[start+3]
+		return num
 
 	#vypis
 	def png_print(self):
