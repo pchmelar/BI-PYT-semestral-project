@@ -111,8 +111,8 @@ class BrainFuck:
                 if idx >= 0 and idx < len(data):
                     arr[ptr] = ord(data[idx])
                     idx += 1
-                else: #mimo vstup
-                    arr[ptr] = 0 
+                else: #mimo vstup - nacteni ze stdin
+                    arr[ptr] = ord(sys.stdin.read(1))
 
             #posun instrukcniho ukazatele doprava
             elif s =='[':
