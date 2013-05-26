@@ -14,14 +14,27 @@
 #http://vyuka.ookami.cz/@CVUT_2012+13-LS_BI-PYT/
 #http://vyuka.ookami.cz/@CVUT_2012+13-LS_BI-SKJ/
 
+import sys
+
 class BrainFuck:
     """Interpretr jazyka brainfuck."""
     
     def __init__(self, data, memory=b'\x00', memory_pointer=0):
         """Inicializace interpretru brainfucku."""
-        
+
         # data programu
-        self.data = data
+        if data.count("!") == 0:
+            self.data = data
+            self.input = ""
+
+        #oddeleni kodu programu od jeho vstupu
+        elif data.count("!") == 1:
+            self.data = data[0:data.find("!")]
+            self.input = data[data.find("!")+1:]
+
+        else:
+            print("Error: Can't use ! more than once", file=sys.stderr)
+            sys.exit(1)
         
         # inicializace proměnných
         self.memory = memory
@@ -46,7 +59,7 @@ class BrainFuck:
         src = self.data #vstupni string
         left = 0 #pocatecni index vstupniho stringu
         right = len(self.data) - 1 #koncovy index vstupniho stringu
-        data = "" #vstup brainfuck programu
+        data = self.input #vstup brainfuck programu
         idx = 0 #pocatecni index vstupu brainfuck programu
 
         if len(src) == 0: return
@@ -59,7 +72,7 @@ class BrainFuck:
         ptr = self.memory_pointer #ukazatel do pameti
 
         #ulozeni pocatecniho stavu pameti
-        s = str(self.memory,encoding="ascii")
+        s = str(self.memory,encoding="utf-8")
         for i in range(0,len(s)):
             arr.append(ord(s[i]))
 
@@ -130,7 +143,7 @@ class BrainFuck:
         s = ""
         for i in range(0,len(arr)):
             s += chr(arr[i])
-        self.memory = bytes(s,encoding="ascii")
+        self.memory = bytes(s,encoding="utf-8")
         self.memory_pointer = ptr
 
         #vystup brainfuck programu
