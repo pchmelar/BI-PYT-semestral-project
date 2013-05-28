@@ -3,7 +3,7 @@
 
 #BI-PYT
 #Semestralni projekt
-#Interpretr jazyka brainfuck
+#Interpretr jazyka brainfuck/brainloller/braincopter
 #FIT CVUT LS 2012/2013
 #
 #Autor: Petr Chmelar (chmelpe7)
@@ -16,6 +16,7 @@
 
 import os
 import sys
+import image_png
 from argparse import ArgumentParser
 
 class BrainFuck:
@@ -35,7 +36,7 @@ class BrainFuck:
             self.input = data[data.find("!")+1:]
 
         else:
-            print("Error: Can't use ! more than once", file=sys.stderr)
+            print("Error: Your brainfuck program can't use ! more than once", file=sys.stderr)
             sys.exit(1)
         
         # inicializace proměnných
@@ -47,7 +48,7 @@ class BrainFuck:
         self.output = ''
 
         #spusteni interpretru
-        self.lets_brainfuck()
+        self.brainfuck()
     
     #
     # pro potřeby testů
@@ -56,8 +57,8 @@ class BrainFuck:
         # Nezapomeňte upravit získání návratové hodnoty podle vaší implementace!
         return self.memory
 
-    #vlastni implementace
-    def lets_brainfuck(self):
+    #implementace brainfuck interpretru
+    def brainfuck(self):
         src = self.data #vstupni string
         left = 0 #pocatecni index vstupniho stringu
         right = len(self.data) - 1 #koncovy index vstupniho stringu
@@ -152,18 +153,61 @@ class BrainFuck:
         #vystup brainfuck programu
         print(self.output, end="")
 
-'''
 
 class BrainLoller():
     """Třída pro zpracování jazyka brainloller."""
     
     def __init__(self, filename):
         """Inicializace interpretru brainlolleru."""
-        
+
         # self.data obsahuje rozkódovaný zdrojový kód brainfucku..
         self.data = ''
+
+        #dekomprese vstupniho PNG souboru
+        self.png = image_png.PngReader
+        self.image = self.png(filename)
+
+        #spusteni interpretru
+        self.brainloller()
+
         # ..který pak předhodíme interpretru
         self.program = BrainFuck(self.data)
+
+    #implementace prekladace brainlolleru na brainfuck
+    def brainloller(self):
+
+        #nastaveni smeru cteni
+        start = 0
+        end = self.image.width
+        itr = 1
+
+        #generovani zdrojoveho kodu pro brainfuck
+        for i in range(0,self.image.height):
+            for j in range(start,end,itr):
+                if self.image.rgb[i][j] == (255,0,0):
+                    self.data += ">"
+                elif self.image.rgb[i][j] == (128,0,0):
+                    self.data += "<"
+                elif self.image.rgb[i][j] == (0,255,0):
+                    self.data += "+"
+                elif self.image.rgb[i][j] == (0,128,0):
+                    self.data += "-"
+                elif self.image.rgb[i][j] == (0,0,255):
+                    self.data += "."
+                elif self.image.rgb[i][j] == (0,0,128):
+                    self.data += ","
+                elif self.image.rgb[i][j] == (255,255,0):
+                    self.data += "["
+                elif self.image.rgb[i][j] == (128,128,0):
+                    self.data += "]"
+                elif self.image.rgb[i][j] == (0,255,255):
+                    start = self.image.width-1
+                    end = -1
+                    itr = -1
+                elif self.image.rgb[i][j] == (0,128,128):
+                    start = 0
+                    end = self.image.width
+                    itr = 1
 
 
 class BrainCopter():
@@ -177,22 +221,44 @@ class BrainCopter():
         # ..který pak předhodíme interpretru
         self.program = BrainFuck(self.data)
 
-'''
 
 #--------------------------MAIN--------------------------
 if __name__ == '__main__':
 
-    #definovani a nacteni argumentu pro vstupni data
+    #definovani a nacteni prepinacu/argumentu pro vstupni data
     parser = ArgumentParser()
     parser.add_argument("input", help="Input file/string")
+    parser.add_argument("-l", "--brainloller", action="store_true", default=False, help="Input file in brainloller")
+    parser.add_argument("-c", "--braincopter", action="store_true", default=False, help="Input file in braincopter")
     args = parser.parse_args()
 
-    #nacteni dat ze souboru/stringu
-    if (os.path.isfile(args.input) == True):
-        with open (args.input, encoding="utf-8") as data_input:
-            content = data_input.read()
-    else:
-        content = args.input
+    #kontrola prepinacu
+    if args.brainloller == True and args.braincopter == True:
+        print("Error: Can't proccess input in brainloller and braincopter languages at once. Choose only one.", file=sys.stderr)
+        sys.exit(1)
 
-    #vykonani programu
-    bf = BrainFuck(content)
+    #vstupem je program v jazyce brainloller
+    if args.brainloller == True:
+        if (os.path.isfile(args.input) == True):
+            bf = BrainLoller(args.input)
+        else:
+            print("Error: Can't open given file.", file=sys.stderr)
+            sys.exit(1)
+
+    #vstupem je program v jazyce braincopter
+    elif args.braincopter == True:
+        if (os.path.isfile(args.input) == True):
+            bf = BrainCopter(args.input)
+        else:
+            print("Error: Can't open given file.", file=sys.stderr)
+            sys.exit(1)
+
+    #vstupem je program v jazyce brainfuck
+    else:
+        if (os.path.isfile(args.input) == True):
+            with open (args.input, encoding="utf-8") as data_input:
+                content = data_input.read()
+        else:
+            content = args.input
+
+        bf = BrainFuck(content)

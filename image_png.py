@@ -193,13 +193,13 @@ class PngReader():
 	def filter_paeth(self,row):
 		for i in range(0,self.width):
 			if i == 0 and row == 0: #y = x + paeth(0,0,0)
-				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth((0,0,0),(0,0,0),(0,0,0)))
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.paeth((0,0,0),(0,0,0),(0,0,0))),256)
 			elif i > 0 and row == 0: #y = x + paeth(a,0,0)
-				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth(self.rgb[row][i-1],(0,0,0),(0,0,0)))
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.paeth(self.rgb[row][i-1],(0,0,0),(0,0,0))),256)
 			elif i == 0 and row > 0: #y = x + paeth(0,b,0)
-				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth((0,0,0),self.rgb[row-1][i],(0,0,0)))
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.paeth((0,0,0),self.rgb[row-1][i],(0,0,0))),256)
 			else: #y = x + paeth(a,b,c)
-				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth(self.rgb[row][i-1],self.rgb[row-1][i],self.rgb[row-1][i-1]))
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.paeth(self.rgb[row][i-1],self.rgb[row-1][i],self.rgb[row-1][i-1])),256)
 
 	#paeth predictor
 	def paeth(self,a,b,c):
@@ -207,12 +207,17 @@ class PngReader():
 		pa = self.tuples_abs((self.tuples_sub(p,a)))
 		pb = self.tuples_abs((self.tuples_sub(p,b)))
 		pc = self.tuples_abs((self.tuples_sub(p,c)))
-		if pa <= pb and pa <= pc:
-			return a
-		elif pb <= pc:
-			return b
-		else:
-			return c 
+
+		result = []
+		for i in range(0,3):
+			if pa[i] <= pb[i] and pa[i] <= pc[i]:
+				result.append(a[i])
+			elif pb[i] <= pc[i]:
+				result.append(b[i])
+			else:
+				result.append(c[i])
+
+		return(result[0],result[1],result[2])
 
 	#vypis
 	def png_print(self):
