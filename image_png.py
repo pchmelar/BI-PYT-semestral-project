@@ -17,6 +17,7 @@
 import os
 import sys
 import zlib
+import math
 from argparse import ArgumentParser
 
 class PNGWrongHeaderError(Exception):
@@ -92,6 +93,19 @@ class PngReader():
 				self.rgb.append(rgb_row)
 				rgb_row = []
 
+		#aplikace filtru
+		for i in range(0,self.height):
+			if self.filters[i] == 0: #none
+				pass
+			elif self.filters[i] == 1: #sub
+				self.filter_sub(i)
+			elif self.filters[i] == 2: #up
+				self.filter_up(i)
+			elif self.filters[i] == 3: #average
+				self.filter_average(i)
+			elif self.filters[i] == 4: #paeth
+				self.filter_paeth(i) 
+
 	#vyparsovani pozadovane casti a spojeni do binarniho retezce
 	def parser(self,data,start,end):
 		s = b""
@@ -117,12 +131,82 @@ class PngReader():
 		num += ord(data[start+3])
 		return num
 
+	#funkce secte prvky dvou triprvkovych ntic
+	def tuples_sum(self,a,b):
+		c = (a[0] + b[0], a[1] + b[1], a[2] + b[2])
+		return c
+
+	#funkce odecte prvky dvou triprvkovych ntic
+	def tuples_sub(self,a,b):
+		c = (a[0] - b[0], a[1] - b[1], a[2] - b[2])
+		return c
+
+	#funkce vydeli vsechny prvky triprvkove ntice
+	def tuples_div(self,a,div):
+		c = (math.floor(a[0] / div), math.floor(a[1] / div), math.floor(a[2] / div))
+		return c
+
+	#funkce provede modulo vsech prvku triprvkove ntice
+	def tuples_mod(self,a,mod):
+		c = (a[0] % mod, a[1] % mod, a[2] % mod)
+		return c
+
+	#funkce provede absolutni hodnotu vsech prvku triprvkove ntice
+	def tuples_abs(self,a):
+		c = (abs(a[0]),abs(a[1]),abs(a[2]))
+		return c
+
+	#radkove PNG filtry berou v potaz sousedni pixely
+	#schema:
+	# c b
+	# a x
+
+	#vertikalni filtr
+	def filter_sub(self,row):
+		for i in range(0,self.width):
+			if i == 0: #y = x + 0
+				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],(0,0,0))
+			else: #y = x + a
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.rgb[row][i-1]),256)
+
+	#horizontalni filtr
+	def filter_up(self,row):
+		for i in range(0,self.width):
+			if row == 0: #y = x + 0
+				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],(0,0,0))
+			else: #y = x + b
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.rgb[row-1][i]),256)
+
+	#uhlopricny filtr
+	def filter_average(self,row):
+		for i in range(0,self.width):
+			if i == 0 and row == 0: #y = x + floor((0 + 0) / 2)
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.tuples_div((0,0,0),2)),256)
+			elif i > 0 and row == 0: #y = x + floor((a + 0) / 2)
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.tuples_div(self.tuples_sum(self.rgb[row][i-1],(0,0,0)),2)),256)
+			elif i == 0 and row > 0: #y = x + floor((0 + b) / 2)
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.tuples_div(self.tuples_sum((0,0,0),self.rgb[row-1][i]),2)),256)
+			else: #y = x + floor((a + b) / 2)
+				self.rgb[row][i] = self.tuples_mod(self.tuples_sum(self.rgb[row][i],self.tuples_div(self.tuples_sum(self.rgb[row][i-1],self.rgb[row-1][i]),2)),256)
+
 	#paeth filtr
-	def Paeth(self,a,b,c):
-		p = a + b - c
-		pa = abs(p - a)
-		pb = abs(p - b)
-		pc = abs(p - c)
+	def filter_paeth(self,row):
+		for i in range(0,self.width):
+			if i == 0 and row == 0: #y = x + paeth(0,0,0)
+				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth((0,0,0),(0,0,0),(0,0,0)))
+			elif i > 0 and row == 0: #y = x + paeth(a,0,0)
+				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth(self.rgb[row][i-1],(0,0,0),(0,0,0)))
+			elif i == 0 and row > 0: #y = x + paeth(0,b,0)
+				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth((0,0,0),self.rgb[row-1][i],(0,0,0)))
+			else: #y = x + paeth(a,b,c)
+				self.rgb[row][i] = self.tuples_sum(self.rgb[row][i],self.paeth(self.rgb[row][i-1],self.rgb[row-1][i],self.rgb[row-1][i-1]))
+
+	#paeth predictor
+	def paeth(self,a,b,c):
+		p = self.tuples_sub(self.tuples_sum(a,b),c)
+		pa = self.tuples_abs((self.tuples_sub(p,a)))
+		pb = self.tuples_abs((self.tuples_sub(p,b)))
+		pc = self.tuples_abs((self.tuples_sub(p,c)))
 		if pa <= pb and pa <= pc:
 			return a
 		elif pb <= pc:
