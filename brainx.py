@@ -107,6 +107,8 @@ class BrainFuck:
 
             #vypis aktualni bunky
             elif s == '.':
+                sys.stdout.write(chr(arr[ptr]))
+                sys.stdout.flush()
                 self.output += chr(arr[ptr])
 
             #ulozeni vstupu do aktualni bunky
@@ -151,7 +153,7 @@ class BrainFuck:
         self.memory_pointer = ptr
 
         #vystup brainfuck programu
-        print(self.output, end="")
+        #print(self.output, end="")
 
 
 class BrainLoller():
@@ -218,8 +220,55 @@ class BrainCopter():
         
         # self.data obsahuje rozkódovaný zdrojový kód brainfucku..
         self.data = ''
+
+        #dekomprese vstupniho PNG souboru
+        self.png = image_png.PngReader
+        self.image = self.png(filename)
+
+        #spusteni interpretru
+        self.braincopter()
+
+        print(self.data)
+
         # ..který pak předhodíme interpretru
-        self.program = BrainFuck(self.data)
+        #self.program = BrainFuck(self.data)
+
+    #implementace prekladace braincopteru na brainfuck
+    def braincopter(self):
+
+        #nastaveni smeru cteni
+        start = 0
+        end = self.image.width
+        itr = 1
+
+        #generovani zdrojoveho kodu pro brainfuck
+        for i in range(0,self.image.height):
+            for j in range(start,end,itr):
+                x = (self.image.rgb[i][j][0]*65536 + self.image.rgb[i][j][1]*256 + self.image.rgb[i][j][2]) % 11
+                if x == 0:
+                    self.data += ">"
+                elif x == 1:
+                    self.data += "<"
+                elif x == 2:
+                    self.data += "+"
+                elif x == 3:
+                    self.data += "-"
+                elif x == 4:
+                    self.data += "."
+                elif x == 5:
+                    self.data += ","
+                elif x == 6:
+                    self.data += "["
+                elif x == 7:
+                    self.data += "]"
+                elif x == 8:
+                    start = self.image.width-1
+                    end = -1
+                    itr = -1
+                elif x == 9:
+                    start = 0
+                    end = self.image.width
+                    itr = 1
 
 
 #--------------------------MAIN--------------------------
